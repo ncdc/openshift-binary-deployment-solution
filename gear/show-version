@@ -1,0 +1,16 @@
+#!/bin/bash
+
+if [ -L ~/app-root/runtime/repo ]; then
+  checksum=`cat ~/app-root/runtime/repo/../checksum`
+  filename=`cat ~/app-root/runtime/artifacts/$checksum/filename`
+
+  valid='OK'
+  `~/app-root/runtime/scripts/validate $checksum`
+  if [ $? -ne 0 ]; then
+    valid='NOT OK'
+  fi
+
+  echo "$filename ($checksum: $valid)"
+else
+  echo 'Unknown; deployment not activated using binary deployment process'
+fi

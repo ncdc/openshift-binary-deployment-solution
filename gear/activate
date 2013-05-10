@@ -1,0 +1,88 @@
+#!/bin/bash
+
+# args
+# 1 - checksum of artifact to be deployed
+
+checksum=$1
+
+# Import Environment Variables
+for f in ~/.env/*; do
+  . $f
+done
+
+. /etc/openshift/node.conf
+. /usr/libexec/openshift/cartridges/abstract/info/lib/util
+
+if [ ! -e ~/app-root/runtime/artifacts/$checksum/$checksum ]; then
+  echo "Artifact $checksum has not been distributed to this gear"
+  exit 1
+fi
+
+repo_dir=$OPENSHIFT_HOMEDIR/app-root/runtime/repo
+
+if [ -L $repo_dir ]; then
+  repo_checksum=`cat $repo_dir/../checksum`
+
+  echo "Comparing '$repo_checksum' to '$checksum'"
+
+  if [ "$repo_checksum" == "$checksum" ]; then
+    echo "Checksum $checksum is the current deployment - skipping activation"
+    exit 0
+  fi
+fi
+
+if ! ~/app-root/runtime/scripts/validate $checksum > /dev/null; then
+  echo "Release failed checksum validation - skipping activation"
+  exit 1
+fi
+
+echo "Stopping application"
+stop_app
+
+if [ -L $repo_dir ]; then
+  echo "Deleting old repo symlink"
+  rm $repo_dir
+else
+  echo "First time activating on this gear - moving repo to repo.orig"
+  mv $repo_dir $repo_dir.orig
+fi
+
+deployment_id=`date +%Y%m%d%H%M%S`
+
+echo "Exploding artifact"
+if ! ~/app-root/runtime/scripts/explode $deployment_id $checksum; then
+  echo "Unable to explode artifact"
+  exit 1
+fi
+
+deployment_repo_dir=$OPENSHIFT_HOMEDIR/app-root/runtime/deployments/$deployment_id/repo
+
+echo "Linking $deployment_repo_dir to $repo_dir"
+ln -s $deployment_repo_dir $repo_dir
+
+java_artifacts=`find $deployment_repo_dir -iname \*.war -o -iname \*.ear -o -iname \*.sar | wc -l`
+if [ $java_artifacts -ne 0 ] && [ -e $deployment_repo_dir/deployments ] && [ ! -e $deployment_repo_dir/deployments/ROOT.war ]; then
+  cp ~/app-root/runtime/scripts/ROOT.war $deployment_repo_dir/deployments/ROOT.war
+fi
+
+set_app_state deploying
+
+framework_carts=($(get_installed_framework_carts))
+primary_framework_cart=${framework_carts[0]}
+
+echo "Calling deploy"
+if [ -e ${CARTRIDGE_BASE_PATH}/${primary_framework_cart}/info/bin/deploy.sh ]; then
+  ${CARTRIDGE_BASE_PATH}/${primary_framework_cart}/info/bin/deploy.sh
+else
+  ${CARTRIDGE_BASE_PATH}/abstract/info/bin/deploy.sh
+fi
+
+echo "Starting application"
+start_app
+
+echo "Calling post_deploy"
+if [ -e ${CARTRIDGE_BASE_PATH}/${primary_framework_cart}/info/bin/post_deploy.sh ]; then
+  ${CARTRIDGE_BASE_PATH}/${primary_framework_cart}/info/bin/post_deploy.sh
+else
+  ${CARTRIDGE_BASE_PATH}/abstract/info/bin/post_deploy.sh
+fi

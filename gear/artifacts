@@ -1,0 +1,15 @@
+#!/bin/bash
+
+# Import Environment Variables
+for f in ~/.env/*; do
+  . $f
+done
+
+artifacts_dir="$OPENSHIFT_HOMEDIR/app-root/runtime/artifacts"
+
+for checksum in `ls $artifacts_dir`; do
+  if [ -d $artifacts_dir/$checksum ]; then
+    filename=`cat $artifacts_dir/$checksum/filename`
+    echo "$checksum: $filename"
+  fi
+done

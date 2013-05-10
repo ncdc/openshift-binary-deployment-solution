@@ -1,0 +1,37 @@
+#!/bin/bash
+
+# Import Environment Variables
+for f in ~/.env/*; do
+  . $f
+done
+
+. /usr/libexec/openshift/cartridges/abstract/info/lib/util
+
+script_dir=`dirname $0`
+
+if $script_dir/can_rollback; then
+  previous_deployment=`ls ~/app-root/runtime/deployments | sort | tail -2 | sed -e '$ d'`
+
+  echo "Stopping application"
+  stop_app
+
+  current_repo=`readlink ~/app-root/runtime/repo`
+  current_deployment=`dirname $current_repo`
+
+  echo "Deleting current repo symlink"
+  rm ~/app-root/runtime/repo
+
+  echo "Deleting current deployment"
+  rm -rf $current_deployment
+
+  deployment_repo_dir=$OPENSHIFT_HOMEDIR/app-root/runtime/deployments/$previous_deployment/repo
+
+  echo "Linking $deployment_repo_dir to ~/app-root/runtime/repo"
+  ln -s $deployment_repo_dir ~/app-root/runtime/repo
+
+  echo "Starting application"
+  start_app
+else
+  echo "can_rollback returned nonzero exit - unable to rollback"
+  exit 1
+fi

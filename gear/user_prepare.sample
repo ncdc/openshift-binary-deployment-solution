@@ -1,0 +1,32 @@
+#!/bin/bash
+
+# args
+# 1 - groupId
+# 2 - artifactId
+# 3 - version
+# 4 - classifier
+
+repo_url=http://YOUR_MAVEN_REPO
+
+group_id=`echo $1 | sed "s,\.,/,g"`
+artifact_id=$2
+version=$3
+classifier=$4
+
+# download file from repo to /tmp
+tmp_file=/tmp/$artifact_id-$version.$classifier
+
+artifact_url=$repo_url/$group_id/$artifact_id/$version/$artifact_id-$version.$classifier
+
+full_url="$repo_url/$group_id/$artifact_id/$version/$artifact_id-$version.$classifier"
+response_code=`curl --silent --location --write-out "%{http_code}" --output $tmp_file $full_url`
+if [ $response_code -ne 200 ]; then
+  echo "Unable to retrieve $full_url"
+  exit 1
+fi
+
+# grab the sha1 from repo
+sha1=`curl --silent $artifact_url.sha1`
+
+# echo location of file and its sha1
+echo "$tmp_file $sha1"

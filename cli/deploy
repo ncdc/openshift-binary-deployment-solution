@@ -1,0 +1,138 @@
+#!/usr/bin/env ruby
+
+require 'rubygems'
+require 'commander/import'
+require 'rest_client'
+require 'json'
+
+$:.unshift File.join(File.dirname(__FILE__), 'lib')
+require 'deployer'
+
+program :version, '0.0.1'
+program :description, 'Deploys binaries to OpenShift'
+
+global_option '-s', '--server SERVER'
+global_option '-u', '--user USER'
+global_option '-p', '--password PASSWORD'
+global_option '-T', '--threads THREADS', Integer
+
+$default_user = $default_server = nil
+
+# try to load default user and server from the openshift config
+config_file = File.join(File.expand_path('~'), '.openshift', 'express.conf')
+if File.exist?(config_file)
+  File.open(config_file, 'r').each do |line|
+    next if line =~ /^#/
+    key, value = line.chomp.split('=')
+
+    if key == 'default_rhlogin'
+      $default_user = value
+    elsif key == 'libra_server'
+      $default_server = value
+    end
+  end
+end
+
+command :init do |c|
+  c.syntax = 'deploy init <app> [options]'
+  c.summary = 'Initializes an OpenShift application for binary (non-git) deployments'
+  c.action do |args, options|
+    OpenShift::Deployment::CLI::Deployer.new(args, options).init_head_gear
+  end
+end
+
+command :'status' do |c|
+  c.syntax = 'deploy status <app> [options]'
+  c.summary = 'Displays the status of all gears for an OpenShift application'
+  c.description = 'Displays the SSH URL, currently deployed version & checksum, and state of each gear'
+  c.action do |args, options|
+    OpenShift::Deployment::CLI::Deployer.new(args, options).status
+  end
+end
+
+command :partition do |c|
+  c.syntax = 'deploy partition <app> [options]'
+  c.summary = 'Divides an OpenShift application\'s gears into multiple partitions for use with the activate command'
+  c.description = <<EOF
+Divides an OpenShift application\'s gears into multiple partitions for use with the activate command.
+
+The partitions will be written to individual files of the format <app>-<partition #>-<total # of partitions>. These files should be passed to the 'activate' command using the --gears option.
+EOF
+  #c.option '--percents PERCENTS', Array
+  c.option '--counts COUNTS', Array, '# of gears in each partition, separated by comma. If sum of counts < total # of gears, 1 additional partition will be created with the remaining gears'
+  c.option '-o', '--output-dir OUTPUT_DIR'
+  c.example 'Divide into partitions of 5, 10, and 20 gears each.', 'deploy partition app --counts=5,10,20 --output-dir=partitions'
+  c.action do |args, options|
+    OpenShift::Deployment::CLI::Deployer.new(args, options).partition
+  end
+end
+
+command :prepare do |c|
+  c.syntax = 'deploy prepare <app> <user_prepare options> [options]'
+  c.summary = 'Prepares a binary artifact on the head gear of an OpenShift application'
+  c.description = <<EOF
+Prepares a binary artifact on the head gear of an OpenShift application.
+
+<user_prepare options> will be passed to the user_prepare script, which must download an artifact, store it (e.g. in /tmp), and echo '<path> <sha1>'.
+
+The 'prepare' action will display the checksum for the artifact, which must be passed to the 'distribute' and 'activate' actions.
+EOF
+  c.action do |args, options|
+    OpenShift::Deployment::CLI::Deployer.new(args, options).prepare
+  end
+end
+
+command :distribute do |c|
+  c.syntax = 'deploy distribute <app> <checksum> [options]'
+  c.summary = 'Distributes the artifact indicated by <checksum> to all gears of <app>.'
+  c.description = 'Distributes the artifact indicated by <checksum> to all gears of <app>.'
+  c.action do |args, options|
+    OpenShift::Deployment::CLI::Deployer.new(args, options).distribute
+  end
+end
+
+command :artifacts do |c|
+  c.syntax = 'deploy artifacts <app> [options]'
+  c.summary = 'Displays all artifacts that have been distributed to an OpenShift application\'s gears'
+  c.description = 'Displays all artifacts that have been distributed to an OpenShift application\'s gears'
+  c.action do |args, options|
+    OpenShift::Deployment::CLI::Deployer.new(args, options).artifacts
+  end
+end
+
+command :deployments do |c|
+  c.syntax = 'deploy deployments <app> [options]'
+  c.summary = 'Displays all deployments'
+  c.description = c.summary
+  c.action do |args, options|
+    OpenShift::Deployment::CLI::Deployer.new(args, options).deployments
+  end
+end
+
+command :activate do |c|
+  c.syntax = 'deploy activate <app> <checksum> [options]'
+  c.summary = 'Activates the artifact indicated by <checksum> to the specified gears, or all gears for an OpenShift application'
+  c.description = c.summary
+  c.example 'Activate all gears', 'deploy activate myapp b62479e0531c49dfe5d7fc7b5d8957d14106781d'
+  c.example 'Activate a subset of gears using a file created by the \'partition\' action', 'deploy activate myapp b62479e0531c49dfe5d7fc7b5d8957d14106781d --gears myapp-1-4'
+  c.example 'Perform a dry run', 'deploy activate myapp b62479e0531c49dfe5d7fc7b5d8957d14106781d --gears myapp-1-4 --dry-run'
+  c.option '-n', '--dry-run'
+  c.option '-g', '--gears FILE'
+  c.action do |args, options|
+    OpenShift::Deployment::CLI::Deployer.new(args, options).activate
+  end
+end
+
+command :rollback do |c|
+  c.syntax = 'deploy rollback <app> [options]'
+  c.summary = 'Activates the previous deployment'
+  c.description = c.summary
+  c.example 'Rollback all gears', 'deploy rollback myapp'
+  c.example 'Rollback a subset of gears', 'deploy rollback myapp --gears myapp-1-4'
+  c.example 'Perform a dry run', 'deploy rollback myapp --dry-run'
+  c.option '-n', '--dry-run'
+  c.option '-g', '--gears FILE'
+  c.action do |args, options|
+    OpenShift::Deployment::CLI::Deployer.new(args, options).rollback
+  end
+end

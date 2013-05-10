@@ -1,0 +1,5 @@
+Requirements:
+
+- bundler
+- make
+- gcc

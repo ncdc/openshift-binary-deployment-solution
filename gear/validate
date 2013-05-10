@@ -1,0 +1,15 @@
+#!/bin/bash
+
+# args
+# 1 - checksum of artifact to be deployed
+
+checksum=$1
+
+artifact_dir=~/app-root/runtime/artifacts/$checksum
+
+calculated_sha1=`sha1sum $artifact_dir/$checksum | cut -f 1 -d ' '`
+
+if [ $checksum != $calculated_sha1 ]; then
+  echo 'Artifact checksum verification failed - exiting'
+  exit 1
+fi

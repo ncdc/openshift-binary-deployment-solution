@@ -1,0 +1,21 @@
+#!/bin/bash
+
+# args
+# 1 - deployment id (YYYYmmddHHMMSS)
+# 2 - checksum of artifact to be deployed
+
+deployment_id=$1
+checksum=$2
+
+deployment_dir=~/app-root/runtime/deployments/$deployment_id
+repo_dir=$deployment_dir/repo
+
+if [ ! -e $repo_dir ]; then
+  mkdir -p $repo_dir
+
+  cd $repo_dir
+
+  tar xf ~/app-root/runtime/artifacts/$checksum/$checksum
+
+  echo $checksum > $deployment_dir/checksum
+fi
