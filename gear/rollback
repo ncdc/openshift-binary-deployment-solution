@@ -29,8 +29,32 @@ if $script_dir/can_rollback; then
   echo "Linking $deployment_repo_dir to ~/app-root/runtime/repo"
   ln -s $deployment_repo_dir ~/app-root/runtime/repo
 
+  java_artifacts=`find $deployment_repo_dir -iname \*.war -o -iname \*.ear -o -iname \*.sar | wc -l`
+  if [ $java_artifacts -ne 0 ] && [ -e $deployment_repo_dir/deployments ] && [ ! -e $deployment_repo_dir/deployments/ROOT.war ]; then
+    cp ~/app-root/runtime/scripts/ROOT.war $deployment_repo_dir/deployments/ROOT.war
+  fi
+
+  set_app_state deploying
+
+  framework_carts=($(get_installed_framework_carts))
+  primary_framework_cart=${framework_carts[0]}
+
+  echo "Calling deploy"
+  if [ -e ${CARTRIDGE_BASE_PATH}/${primary_framework_cart}/info/bin/deploy.sh ]; then
+    ${CARTRIDGE_BASE_PATH}/${primary_framework_cart}/info/bin/deploy.sh
+  else
+    ${CARTRIDGE_BASE_PATH}/abstract/info/bin/deploy.sh
+  fi
+
   echo "Starting application"
   start_app
+  
+  echo "Calling post_deploy"
+  if [ -e ${CARTRIDGE_BASE_PATH}/${primary_framework_cart}/info/bin/post_deploy.sh ]; then
+    ${CARTRIDGE_BASE_PATH}/${primary_framework_cart}/info/bin/post_deploy.sh
+  else
+    ${CARTRIDGE_BASE_PATH}/abstract/info/bin/post_deploy.sh
+  fi
 else
   echo "can_rollback returned nonzero exit - unable to rollback"
   exit 1
