@@ -4,10 +4,12 @@
 # 1 - deployment id (YYYYmmddHHMMSS)
 # 2 - checksum of artifact to be deployed
 
+. `dirname $0`/lib/util
+
 deployment_id=$1
 checksum=$2
 
-deployment_dir=~/app-root/runtime/deployments/$deployment_id
+deployment_dir=$DEPLOYMENTS_DIR/$deployment_id
 repo_dir=$deployment_dir/repo
 
 if [ ! -e $repo_dir ]; then
@@ -15,7 +17,7 @@ if [ ! -e $repo_dir ]; then
 
   cd $repo_dir
 
-  tar xf ~/app-root/runtime/artifacts/$checksum/$checksum
+  tar xf $ARTIFACTS_DIR/$checksum/$checksum
 
   echo $checksum > $deployment_dir/checksum
 fi

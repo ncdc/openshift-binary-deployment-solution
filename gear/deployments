@@ -1,7 +1,9 @@
 #!/bin/bash
 
-for f in `ls ~/app-root/runtime/deployments | sort`; do
-  checksum=`cat ~/app-root/runtime/deployments/$f/checksum`
-  filename=`cat ~/app-root/runtime/artifacts/$checksum/filename`
+. `dirname $0`/lib/util
+
+for f in `ls $DEPLOYMENTS_DIR | sort`; do
+  checksum=`cat $DEPLOYMENTS_DIR/$f/checksum`
+  filename=`cat $ARTIFACTS_DIR/$checksum/filename`
   echo "$f - $checksum - $filename"
 done

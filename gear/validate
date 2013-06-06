@@ -3,9 +3,11 @@
 # args
 # 1 - checksum of artifact to be deployed
 
+. `dirname $0`/lib/util
+
 checksum=$1
 
-artifact_dir=~/app-root/runtime/artifacts/$checksum
+artifact_dir=$ARTIFACTS_DIR/$checksum
 
 calculated_sha1=`sha1sum $artifact_dir/$checksum | cut -f 1 -d ' '`
 

@@ -1,0 +1,9 @@
+# Import Environment Variables
+for f in ~/.env/*; do
+  . $f
+done
+
+USER_DIR=$OPENSHIFT_HOMEDIR/app-root/runtime/user
+ARTIFACTS_DIR=$USER_DIR/artifacts
+DEPLOYMENTS_DIR=$USER_DIR/deployments
+SCRIPTS_DIR=$USER_DIR/scripts

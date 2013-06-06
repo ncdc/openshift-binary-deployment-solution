@@ -1,11 +1,17 @@
 #!/bin/bash
 
-if [ -L ~/app-root/runtime/repo ]; then
-  checksum=`cat ~/app-root/runtime/repo/../checksum`
-  filename=`cat ~/app-root/runtime/artifacts/$checksum/filename`
+. `dirname $0`/lib/util
+
+# OPENSHIFT_REPO_DIR ends with /, need to remove it when renaming
+# hence the %?
+REPO_DIR=${OPENSHIFT_REPO_DIR%?}
+
+if [ -L $REPO_DIR ]; then
+  checksum=`cat $REPO_DIR/../checksum`
+  filename=`cat $ARTIFACTS_DIR/$checksum/filename`
 
   valid='OK'
-  `~/app-root/runtime/scripts/validate $checksum`
+  `$SCRIPTS_DIR/validate $checksum`
   if [ $? -ne 0 ]; then
     valid='NOT OK'
   fi

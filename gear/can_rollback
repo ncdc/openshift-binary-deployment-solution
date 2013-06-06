@@ -1,7 +1,9 @@
 #!/bin/bash
 
+. `dirname $0`/lib/util
+
 # make sure there is a previous deployment
-previous_deployment=`ls ~/app-root/runtime/deployments | sort | tail -2 | sed -e '$ d'`
+previous_deployment=`ls $DEPLOYMENTS_DIR | sort | tail -2 | sed -e '$ d'`
 if [ "x$previous_deployment" == "x" ]; then
   echo "No previous deployment exists"
   exit 1

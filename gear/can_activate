@@ -3,13 +3,15 @@
 # args
 # 1 - checksum of artifact to be deployed
 
+. `dirname $0`/lib/util
+
 # make sure the artifact has been distributed
-if [ ! -e ~/app-root/runtime/artifacts/$1 ]; then
+if [ ! -e $ARTIFACTS_DIR/$1 ]; then
   exit 1
 fi
 
 # make sure the artifact's checksum is ok
-`~/app-root/runtime/scripts/validate $1 > /dev/null`
+$SCRIPTS_DIR/validate $1 > /dev/null`
 if [ $? -ne 0 ]; then
   exit 1
 fi

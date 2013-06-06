@@ -1,37 +1,38 @@
 #!/bin/bash
 
-# Import Environment Variables
-for f in ~/.env/*; do
-  . $f
-done
+. `dirname $0`/lib/util
 
 . /usr/libexec/openshift/cartridges/abstract/info/lib/util
 
 script_dir=`dirname $0`
 
+# OPENSHIFT_REPO_DIR ends with /, need to remove it when renaming
+# hence the %?
+REPO_DIR=${OPENSHIFT_REPO_DIR%?}
+
 if $script_dir/can_rollback; then
-  previous_deployment=`ls ~/app-root/runtime/deployments | sort | tail -2 | sed -e '$ d'`
+  previous_deployment=`ls $DEPLOYMENTS_DIR | sort | tail -2 | sed -e '$ d'`
 
   echo "Stopping application"
   stop_app
 
-  current_repo=`readlink ~/app-root/runtime/repo`
+  current_repo=`readlink $REPO_DIR`
   current_deployment=`dirname $current_repo`
 
   echo "Deleting current repo symlink"
-  rm ~/app-root/runtime/repo
+  rm $REPO_DIR
 
   echo "Deleting current deployment"
   rm -rf $current_deployment
 
-  deployment_repo_dir=$OPENSHIFT_HOMEDIR/app-root/runtime/deployments/$previous_deployment/repo
+  deployment_repo_dir=$DEPLOYMENTS_DIR/$previous_deployment/repo
 
-  echo "Linking $deployment_repo_dir to ~/app-root/runtime/repo"
-  ln -s $deployment_repo_dir ~/app-root/runtime/repo
+  echo "Linking $deployment_repo_dir to $REPO_DIR"
+  ln -s $deployment_repo_dir $REPO_DIR
 
   java_artifacts=`find $deployment_repo_dir -iname \*.war -o -iname \*.ear -o -iname \*.sar | wc -l`
   if [ $java_artifacts -ne 0 ] && [ -e $deployment_repo_dir/deployments ] && [ ! -e $deployment_repo_dir/deployments/ROOT.war ]; then
-    cp ~/app-root/runtime/scripts/ROOT.war $deployment_repo_dir/deployments/ROOT.war
+    cp $SCRIPTS_DIR/ROOT.war $deployment_repo_dir/deployments/ROOT.war
   fi
 
   set_app_state deploying

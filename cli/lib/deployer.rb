@@ -8,6 +8,20 @@ module OpenShift
   module Deployment
     module CLI
       class Deployer
+        #TODO see if there's an easy way to avoid duplicating these
+        #in gear/lib/deployment.rb
+        USER_DIR_NAME = "app-root/runtime/user"
+        USER_DIR = "#{ENV['OPENSHIFT_HOMEDIR']}/#{USER_DIR_NAME}"
+
+        ARTIFACTS_DIR = "#{USER_DIR}/artifacts"
+        ARTIFACTS_DIR_NAME = "#{USER_DIR_NAME}/artifacts"
+
+        DEPLOYMENTS_DIR = "#{USER_DIR}/deployments"
+        DEPLOYMENTS_DIR_NAME = "#{USER_DIR_NAME}/deployments"
+
+        SCRIPTS_DIR = "#{USER_DIR}/scripts"
+        SCRIPTS_DIR_NAME = "#{USER_DIR_NAME}/scripts"
+
         def initialize(args, options)
           @user = options.user || $default_user
           @password = options.password
@@ -26,10 +40,12 @@ module OpenShift
             ssh_url = gear['ssh_url'].gsub(/^ssh:\/\//, '')
 
             result << "Creating directories"
-            `ssh #{ssh_url} mkdir -p app-root/runtime/{deployments,artifacts,scripts}`
+            `ssh #{ssh_url} mkdir -p #{ARTIFACTS_DIR_NAME}`
+            `ssh #{ssh_url} mkdir -p #{DEPLOYMENTS_DIR_NAME}`
+            `ssh #{ssh_url} mkdir -p #{SCRIPTS_DIR_NAME}`
 
             result << 'Syncing scripts'
-            result << `rsync -axvz #{File.dirname(__FILE__)}/../../gear/ #{ssh_url}:app-root/runtime/scripts/`
+            result << `rsync -axvz --exclude user_prepare #{File.dirname(__FILE__)}/../../gear/ #{ssh_url}:#{SCRIPTS_DIR_NAME}/`
           end
 
           gears.collect {|g| g['id']}.each_with_index do |gear_id, index|
@@ -39,7 +55,7 @@ module OpenShift
           end
 
           color "Initializing bundle", :bold, :underline
-          say `ssh #{app_ssh_string} "cd ~/app-root/runtime/scripts && bundle install --local --deployment"`
+          say `ssh #{app_ssh_string} "cd #{SCRIPTS_DIR_NAME} && bundle install --local --deployment"`
         end
 
         def status
@@ -47,7 +63,7 @@ module OpenShift
 
           output = parallel(gears) do |gear|
             ssh_url = gear['ssh_url'].gsub(/^ssh:\/\//, '')
-            version = `ssh #{ssh_url} '~/app-root/runtime/scripts/show-version 2>&1'`
+            version = `ssh #{ssh_url} '#{SCRIPTS_DIR_NAME}/show-version 2>&1'`
             version = "Error checking version: #{output}" unless $?.success?
             {:ssh_url => gear['ssh_url'], :version => version, :state => gear['state']}
           end
@@ -63,17 +79,17 @@ module OpenShift
         end
 
         def prepare
-          say `ssh #{app_ssh_string} "~/app-root/runtime/scripts/prepare #{@args.join(' ')}"`
+          say `ssh #{app_ssh_string} "#{SCRIPTS_DIR_NAME}/prepare #{@args.join(' ')}"`
         end
 
         def distribute
-          say `ssh #{app_ssh_string} "cd ~/app-root/runtime/scripts && ./distribute #{@args.join(' ')}"`
+          say `ssh #{app_ssh_string} "cd #{SCRIPTS_DIR_NAME} && ./distribute #{@args.join(' ')}"`
         end
 
         def artifacts
           output = parallel(gears) do |gear|
             ssh_url = gear['ssh_url'].gsub(/^ssh:\/\//, '')
-            `ssh #{ssh_url} "~/app-root/runtime/scripts/artifacts"`
+            `ssh #{ssh_url} "#{SCRIPTS_DIR_NAME}/artifacts"`
           end
 
           gears.collect {|g| g['id']}.each_with_index do |gear_id, index|
@@ -87,7 +103,7 @@ module OpenShift
         def deployments
           output = parallel(gears) do |gear|
             ssh_url = gear['ssh_url'].gsub(/^ssh:\/\//, '')
-            `ssh #{ssh_url} "~/app-root/runtime/scripts/deployments"`
+            `ssh #{ssh_url} "#{SCRIPTS_DIR_NAME}/deployments"`
           end
 
           gears.collect {|g| g['id']}.each_with_index do |gear_id, index|
@@ -113,14 +129,14 @@ module OpenShift
             uuid = ssh_url.split('@')[0]
 
             if @options.dry_run
-              `ssh #{ssh_url} "~/app-root/runtime/scripts/can_#{action} #{@args[0]}"`
+              `ssh #{ssh_url} "#{SCRIPTS_DIR_NAME}/can_#{action} #{@args[0]}"`
               if $?.success?
                 ok << uuid
               else
                 bad << uuid
               end
             else
-              `ssh #{ssh_url} "~/app-root/runtime/scripts/#{action} #{@args.join(' ')} 2>&1"`
+              `ssh #{ssh_url} "#{SCRIPTS_DIR_NAME}/#{action} #{@args.join(' ')} 2>&1"`
             end
           end
 

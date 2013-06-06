@@ -1,41 +1,55 @@
-#!/bin/bash
+#!/bin/bash -e
 
-# Import Environment Variables
-for f in ~/.env/*; do
-  . $f
-done
+# args
+# 1 - url to artifact
+
+. `dirname $0`/lib/util
 
 script_dir=`dirname $0`
 
-# call the user specific prepare, which must download the artifact and echo its location
-echo "Executing user_prepare"
-artifact_and_sha1=`$script_dir/user_prepare "$@"`
+mkdir -p /tmp/$OPENSHIFT_GEAR_UUID
 
-if [ $? -ne 0 ]; then
-  echo "Error running user_prepare: $artifact_and_sha1"
+# download the artifact from the url specified as $1
+tmp_file=/tmp/$OPENSHIFT_GEAR_UUID/`date +"%Y%m%d%H%M%S"`
+response_code=`curl --silent --location --write-out "%{http_code}" --output $tmp_file $1`
+if [ $response_code -ne 200 ]; then
+  echo "Unable to retrieve $1"
   exit 1
 fi
 
-echo "Result: $artifact_and_sha1"
+echo "Looking for .openshift/action_hooks/user_prepare in $tmp_file"
+if tar tf $tmp_file .openshift/action_hooks/user_prepare 2>&1 > /dev/null; then
+  echo "user_prepare found - extracting"
+  tar xOf $tmp_file .openshift/action_hooks/user_prepare > /tmp/$OPENSHIFT_GEAR_UUID/user_prepare
+  chmod +x /tmp/$OPENSHIFT_GEAR_UUID/user_prepare
 
-# will be something like /tmp/foo.tgz
-tmp_artifact=`echo $artifact_and_sha1 | cut -f 1 -d ' '`
+  echo "Executing user_prepare"
+  user_artifact=`/tmp/$OPENSHIFT_GEAR_UUID/user_prepare $tmp_file | tail -n 1`
 
-# just the sha
-artifact_sha1=`echo $artifact_and_sha1 | cut -f 2 -d ' '`
+  if [ $? -ne 0 ]; then
+    echo "Error running user_prepare: $user_artifact"
+    exit 1
+  fi
 
-# will turn /tmp/foo.tgz into foo.tgz
-artifact_name=`basename $tmp_artifact`
+  # delete the original download
+  rm -f $tmp_file
+
+  echo "Result: $user_artifact"
+  tmp_file=$user_artifact
+fi
+
+artifact_sha1=`sha1sum $tmp_file | cut -f 1 -d ' '`
 
 # move the artifact to the artifacts dir
-artifact_dir=$OPENSHIFT_HOMEDIR/app-root/runtime/artifacts/$artifact_sha1
+artifact_dir=$ARTIFACTS_DIR/$artifact_sha1
 
 echo "Creating directory $artifact_dir"
 mkdir -p $artifact_dir
 
-echo "Moving $tmp_artifact to $artifact_dir"
-mv $tmp_artifact $artifact_dir/$artifact_sha1
+echo "Moving $tmp_file to $artifact_dir"
+mv $tmp_file $artifact_dir/$artifact_sha1
 
+artifact_name=`basename $1`
 echo "Writing '$artifact_name' to $artifact_dir/filename"
 echo $artifact_name > $artifact_dir/filename
 
