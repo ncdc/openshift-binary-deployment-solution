@@ -20,13 +20,13 @@ end
 
 checksum=ARGV.shift
 
-sync_base_dir = Openshift::Deployment::ARTIFACTS_DIR
+sync_base_dir = OpenShift::Deployment::ARTIFACTS_DIR
 
 raise "Release #{checksum} has not been prepared yet" unless File.exist?(File.join(sync_base_dir, checksum))
 
 
 puts "Validating artifact checksum on head gear"
-`#{Openshift::Deployment::SCRIPTS_DIR}/validate #{checksum}`
+`#{OpenShift::Deployment::SCRIPTS_DIR}/validate #{checksum}`
 raise "Checksum validation failed on head gear" unless $?.success?
 
 successes = []
@@ -44,10 +44,10 @@ output = Parallel.map(gears, :in_threads => 5) do |uuid, host|
   #`ssh #{uuid}@#{host} mkdir -p app-root/runtime/artifacts/#{checksum}`
 
   result << "Syncing artifact #{checksum}"
-  result << `rsync -v --delete-after -az --rsh=ssh "#{sync_base_dir}/#{checksum}/" "#{uuid}@#{host}:#{Openshift::Deployment::ARTIFACTS_DIR_NAME}/#{checksum}/"`
+  result << `rsync -v --delete-after -az --rsh=ssh "#{sync_base_dir}/#{checksum}/" "#{uuid}@#{host}:#{OpenShift::Deployment::ARTIFACTS_DIR_NAME}/#{checksum}/"`
 
   result << "Validating checksum"
-  `ssh #{uuid}@#{host} #{Openshift::Deployment::SCRIPTS_DIR_NAME}/validate #{checksum}`
+  `ssh #{uuid}@#{host} #{OpenShift::Deployment::SCRIPTS_DIR_NAME}/validate #{checksum}`
 
   if $?.success?
     result << "Checksum validated"
