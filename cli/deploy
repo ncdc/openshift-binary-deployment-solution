@@ -68,12 +68,12 @@ EOF
 end
 
 command :prepare do |c|
-  c.syntax = 'deploy prepare <app> <user_prepare options> [options]'
+  c.syntax = 'deploy prepare <app> <artifact_url> [options]'
   c.summary = 'Prepares a binary artifact on the head gear of an OpenShift application'
   c.description = <<EOF
 Prepares a binary artifact on the head gear of an OpenShift application.
 
-<user_prepare options> will be passed to the user_prepare script, which must download an artifact, store it (e.g. in /tmp), and echo '<path> <sha1>'.
+Downloads the binary arfifact specified by <artifact_url>, which must be a .tar.gz file, to a temporary location. If the artifact contains .openshift/action_hooks/user_prepare, the hook is extracted and then executed, with the artifact's temporary location passed as the argument to user_prepare. The user_prepare hook may do any additional processing necessary. When finished, it must echo the full path to the finalized artifact file.
 
 The 'prepare' action will display the checksum for the artifact, which must be passed to the 'distribute' and 'activate' actions.
 EOF
