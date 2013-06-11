@@ -11,7 +11,7 @@ if [ ! -e $ARTIFACTS_DIR/$1 ]; then
 fi
 
 # make sure the artifact's checksum is ok
-$SCRIPTS_DIR/validate $1 > /dev/null`
+$SCRIPTS_DIR/validate $1 > /dev/null
 if [ $? -ne 0 ]; then
   exit 1
 fi
