@@ -102,7 +102,7 @@ Example output:
 	
 	Gear 51b0e483a7cfd1abf2000092
 	  SSH URL: ssh://51b0e483a7cfd1abf2000092@51b0e483a7cfd1abf2000092-agoldstein.example.com
-	  Deployed version: Unknown; deployment not activated using binary deployment process
+	  Deployed version: myapp-1.0.tar.gz (34e2c81bc295d8b769d9531c44532390d4104705: OK)
 	  State: stopped
 	
 	Gear 51b0e665a7cfd1abf20000a5
@@ -147,6 +147,7 @@ Example output:
 	  20130606121412 - 34e2c81bc295d8b769d9531c44532390d4104705 - myapp-1.0.tar.gz
 	
 	Gear 51b0e483a7cfd1abf2000092
+	  20130606121412 - 34e2c81bc295d8b769d9531c44532390d4104705 - myapp-1.0.tar.gz
 	
 	Gear 51b0e665a7cfd1abf20000a5
 	  20130606121412 - 34e2c81bc295d8b769d9531c44532390d4104705 - myapp-1.0.tar.gz
