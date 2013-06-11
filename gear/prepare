@@ -38,7 +38,7 @@ if tar tf $tmp_file .openshift/action_hooks/user_prepare 2>&1 > /dev/null; then
   tmp_file=$user_artifact
 fi
 
-artifact_sha1=`sha1sum $tmp_file | cut -f 1 -d ' '`
+artifact_sha1=`tar xOf $tmp_file | sha1sum | cut -f 1 -d ' '`
 
 # move the artifact to the artifacts dir
 artifact_dir=$ARTIFACTS_DIR/$artifact_sha1

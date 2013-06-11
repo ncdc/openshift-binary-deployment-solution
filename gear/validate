@@ -9,7 +9,7 @@ checksum=$1
 
 artifact_dir=$ARTIFACTS_DIR/$checksum
 
-calculated_sha1=`sha1sum $artifact_dir/$checksum | cut -f 1 -d ' '`
+calculated_sha1=`tar xOf $artifact_dir/$checksum | sha1sum | cut -f 1 -d ' '`
 
 if [ $checksum != $calculated_sha1 ]; then
   echo 'Artifact checksum verification failed - exiting'
