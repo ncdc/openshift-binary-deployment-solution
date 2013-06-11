@@ -7,7 +7,12 @@ If you have a scalable application, a `git push` will result in your latest chan
 
 This is an external solution to allow deploying binary artifacts to OpenShift applications without the need to use git. It consists of a single command line script called "deploy" that performs several actions, described below.
 
-But first, some information on binary artifacts and what they are.
+## Prerequisites
+All of the following must be installed both locally and on all OpenShift nodes:
+
+* ruby (1.8+)
+* rubygems
+* bundler
 
 ## Binary Artifacts
 Binary artifacts are compressed tar files (.tar.gz). They contain everything you would expect to see in a normal OpenShift application:
@@ -20,6 +25,15 @@ Binary artifacts are compressed tar files (.tar.gz). They contain everything you
 Prior to executing the commands below, create a binary artifact and upload it to a web server (e.g., for Java-based deployments, deploying your artifacts to a Maven repository server such as Nexus or Artifactory is a good option).
 
 # Usage
+## Preparing the tooling
+First, clone this repo, e.g. `git clone https://github.com/ncdc/openshift-binary-deployment-solution.git`.
+
+Next, change into the cli directory: `cd openshift-binary-deployment-solution/cli`
+
+Run `bundle install`
+
+Now you can run all of the `deploy` commands listed below.
+
 ## Init
 Usage: `deploy init APP`
 
@@ -151,3 +165,10 @@ Example output:
 	
 	Gear 51b0e665a7cfd1abf20000a5
 	  20130606121412 - 34e2c81bc295d8b769d9531c44532390d4104705 - myapp-1.0.tar.gz
+
+# TODO
+* consider making this a gem
+* consider creating an RPM spec file
+
+# LICENSE
+Licensed under the Apache License, Version 2.0. Please see the LICENSE file for complete details.
